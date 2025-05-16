@@ -1,9 +1,11 @@
-import { Controller, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Controller, UnauthorizedException } from '@nestjs/common';
 import {
   ApiCookieAuth,
   ApiBody,
   ApiOkResponse,
   ApiUnauthorizedResponse,
+  ApiCreatedResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import { HttpCode, UseGuards } from '@nestjs/common';
 import { Post, Get } from '@nestjs/common';
@@ -13,6 +15,7 @@ import { LocalAuthGuard } from '../local-auth.guard';
 import { JwtAuthGuard } from '../jwt-auth.guard';
 import { UsersService } from '../../database/users/users.service';
 import { JwtRefreshAuthGuard } from '../jwt-auth-refresh.guard';
+import { UserDto } from '../../database/models/dto/user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -65,6 +68,64 @@ export class AuthController {
     });
     const { password, id, ...cleanUser } = req.user;
     return cleanUser;
+  }
+
+  /**
+   * Endpoint de registro
+   */
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        firstName: { type: 'string', example: 'John' },
+        lastName: { type: 'string', example: 'Doe' },
+        email: { type: 'string', example: 'user@example.com' },
+        password: { type: 'string', example: 'passwordHashed' },
+      },
+    },
+  })
+  @ApiCreatedResponse({
+    description: 'El usuario se ha creado',
+    schema: {
+      type: 'object',
+      properties: {
+        firstName: { type: 'string', example: 'John' },
+        lastName: { type: 'string', example: 'Doe' },
+        email: { type: 'string', example: 'user@example.com' },
+      },
+    },
+  })
+  @ApiConflictResponse({
+    description: 'El usuario ya existe',
+  })
+  @HttpCode(201)
+  @Post('register')
+  async register(@Request() req: any) {
+    const newUser = new UserDto();
+    newUser.firstName = req.body.firstName;
+    newUser.lastName = req.body.lastName;
+    newUser.email = req.body.email;
+    newUser.password = req.body.password;
+
+    try {
+      const { user, token, refreshToken } =
+        await this.authService.registerUser(newUser);
+      req.res.cookie('token', token.access_token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+      });
+
+      req.res.cookie('refresh_token', refreshToken.refresh_token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+      });
+      const { password, id, ...cleanUser } = user;
+      return cleanUser;
+    } catch (error) {
+      throw new ConflictException(error.message);
+    }
   }
 
   /**

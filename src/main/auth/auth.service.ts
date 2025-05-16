@@ -41,4 +41,11 @@ export class AuthService {
       }),
     };
   }
+
+  async registerUser(userDto: UserDto) {
+    const user = await this.usersService.createOne(userDto);
+    const token = await this.createJWT(user);
+    const refreshToken = await this.createRefreshToken(user);
+    return { user, token, refreshToken };
+  }
 }
