@@ -4,6 +4,7 @@ import { plainToClass } from "class-transformer";
 import { UserEntity } from "../entity/user.entity";
 
 export class UserDto {
+    @ApiHideProperty()
     @IsUUID()
     id: string;
 

@@ -37,14 +37,7 @@ export class AuthController {
   })
   @ApiOkResponse({
     description: 'Datos del usuario y una cookie con el token JWT',
-    schema: {
-      type: 'object',
-      properties: {
-        firstName: { type: 'string', example: 'John' },
-        lastName: { type: 'string', example: 'Doe' },
-        email: { type: 'string', example: 'user@example.com' },
-      },
-    },
+    type: UserDto,
   })
   @ApiUnauthorizedResponse({
     description: 'Inicio de sesión incorrecto',
@@ -67,7 +60,7 @@ export class AuthController {
       sameSite: 'strict',
     });
     const { password, id, ...cleanUser } = req.user;
-    return cleanUser;
+    return cleanUser as UserDto;
   }
 
   /**

@@ -12,6 +12,20 @@ async function bootstrap() {
     .setTitle('BackToBackup API')
     .setDescription('BackToBackup API description')
     .setVersion('1.0')
+    .addSecurity('refresh_token', {
+      type: 'http',
+      in: 'cookie',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'refresh_token',
+    })
+    .addSecurity('token', {
+      type: 'http',
+      in: 'cookie',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'token',
+    })
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, configSwagger);
