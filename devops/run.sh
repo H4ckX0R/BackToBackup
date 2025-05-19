@@ -6,4 +6,4 @@ PROJECT_NAME=${PWD##*/}
 echo "Project name is $PROJECT_NAME"
 
 cd $(dirname "$0")
-docker-compose -p $PROJECT_NAME up
+docker-compose --env-file ../.env -p $PROJECT_NAME up
