@@ -8,6 +8,11 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  app.enableCors({
+    origin: 'http://localhost:4200',
+    credentials: true,
+  });
+
   const configSwagger = new DocumentBuilder()
     .setTitle('BackToBackup API')
     .setDescription('BackToBackup API description')
@@ -31,6 +36,8 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, configSwagger);
 
   SwaggerModule.setup('api', app, documentFactory);
+
+  app.setGlobalPrefix('api');
 
 
   await app.listen(process.env.PORT ?? 3000);
