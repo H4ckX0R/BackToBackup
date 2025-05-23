@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../database/users/users.service';
 import { UserDto } from '../database/models/dto/user.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -13,7 +13,7 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findOneByEmail(email);
     if (user && bcrypt.compareSync(password, user.password)) {
-      return user;
+      return user.toResponseObject();
     }
     return null;
   }
@@ -26,7 +26,7 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
-        expiresIn: '1h',
+        expiresIn: '5m',
       }),
     };
   }
@@ -38,7 +38,7 @@ export class AuthService {
     return {
       refresh_token: this.jwtService.sign(payload, {
         secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: '24h',
+        expiresIn: '30d',
       }),
     };
   }
@@ -47,8 +47,20 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(userDto.password, 12);
     userDto.password = hashedPassword;
     const user = await this.usersService.createOne(userDto);
+    
     const token = await this.createJWT(user);
     const refreshToken = await this.createRefreshToken(user);
-    return { user, token, refreshToken };
+    return { user: user, token, refreshToken };
+  }
+
+  async loginUser(userDto: UserDto) {
+    const user = await this.usersService.findOne(userDto.id);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    
+    const token = await this.createJWT(user);
+    const refreshToken = await this.createRefreshToken(user);
+    return { user: user, token, refreshToken };
   }
 }

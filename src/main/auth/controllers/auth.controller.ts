@@ -1,4 +1,4 @@
-import { ConflictException, Controller, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Controller, UnauthorizedException } from '@nestjs/common';
 import {
   ApiCookieAuth,
   ApiBody,
@@ -6,6 +6,7 @@ import {
   ApiUnauthorizedResponse,
   ApiCreatedResponse,
   ApiConflictResponse,
+  ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import { HttpCode, UseGuards } from '@nestjs/common';
 import { Post, Get } from '@nestjs/common';
@@ -31,7 +32,7 @@ export class AuthController {
       type: 'object',
       properties: {
         email: { type: 'string', example: 'user@example.com' },
-        password: { type: 'string', example: 'passwordHashed' },
+        password: { type: 'string', example: 'password' },
       },
     },
   })
@@ -46,21 +47,22 @@ export class AuthController {
   @HttpCode(200)
   @Post('login')
   async login(@Request() req: any) {
-    const token = await this.authService.createJWT(req.user);
+    const { user, token, refreshToken } = await this.authService.loginUser(req.user);
     req.res.cookie('token', token.access_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
+      maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
     });
 
-    const refreshToken = await this.authService.createRefreshToken(req.user);
     req.res.cookie('refresh_token', refreshToken.refresh_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
+      maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
     });
-    const { password, id, ...cleanUser } = req.user;
-    return cleanUser as UserDto;
+    
+    return user.toResponseObject();
   }
 
   /**
@@ -73,27 +75,28 @@ export class AuthController {
         firstName: { type: 'string', example: 'John' },
         lastName: { type: 'string', example: 'Doe' },
         email: { type: 'string', example: 'user@example.com' },
-        password: { type: 'string', example: 'passwordHashed' },
+        password: { type: 'string', example: 'password' },
       },
     },
   })
   @ApiCreatedResponse({
     description: 'El usuario se ha creado',
-    schema: {
-      type: 'object',
-      properties: {
-        firstName: { type: 'string', example: 'John' },
-        lastName: { type: 'string', example: 'Doe' },
-        email: { type: 'string', example: 'user@example.com' },
-      },
-    },
+    type: UserDto,
   })
   @ApiConflictResponse({
     description: 'El usuario ya existe',
   })
+  @ApiBadRequestResponse({
+    description: 'Faltan datos',
+  })
   @HttpCode(201)
   @Post('register')
   async register(@Request() req: any) {
+
+    if (!req.body.firstName || !req.body.lastName || !req.body.email || !req.body.password) {
+      throw new BadRequestException('Faltan datos');
+    }
+
     const newUser = new UserDto();
     newUser.firstName = req.body.firstName;
     newUser.lastName = req.body.lastName;
@@ -107,15 +110,18 @@ export class AuthController {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
+        maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
       });
 
       req.res.cookie('refresh_token', refreshToken.refresh_token, {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
+        maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
       });
-      const { password, id, ...cleanUser } = user;
-      return cleanUser;
+    
+      
+      return user.toResponseObject();
     } catch (error) {
       throw new ConflictException(error.message);
     }
@@ -140,23 +146,47 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
+      maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
     });
     return;
   }
 
   /**
-   * Endpoint de obtención del perfil del usuario de prueba
+   * Endpoint de cierre de sesión
    */
   @ApiCookieAuth('token')
+  @ApiCookieAuth('refresh_token')
+  @ApiOkResponse({
+    description: 'Se han eliminado las cookies',
+  })
+  @HttpCode(200)
+  @Post('logout')
+  async logout(@Request() req: any) {
+    req.res.clearCookie('token');
+    req.res.clearCookie('refresh_token');
+    return;
+  }
+
+  /**
+   * Endpoint de obtención de datos del usuario autenticado
+   */
+  @ApiCookieAuth('token')
+  @ApiOkResponse({
+    description: 'Datos del usuario autenticado',
+    type: UserDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token inválido',
+  })
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
-  @Get('profile')
-  async getProfile(@Request() req: any) {
-    const user = await this.usersService.findOneByEmail(req.user.email);
+  @Get('me')
+  async getMe(@Request() req: any) {
+    const user = await this.usersService.findOne(req.user.id);
     if (!user) {
       throw new UnauthorizedException();
     }
-    const { password, id, ...cleanUser } = user;
-    return cleanUser;
+    
+    return user.toResponseObject();
   }
 }
