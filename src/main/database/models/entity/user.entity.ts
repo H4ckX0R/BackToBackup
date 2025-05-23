@@ -15,8 +15,8 @@ export class UserEntity {
   @Column({unique: true})
   email: string;
 
-  @Column()
-  password: string;
+  @Column({nullable: true})
+  password?: string;
 
   @ManyToMany(() => RoleEntity)
   @JoinTable()

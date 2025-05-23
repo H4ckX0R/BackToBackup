@@ -1,10 +1,11 @@
 import { ApiHideProperty } from "@nestjs/swagger";
 import { IsEmail, IsUUID } from "class-validator";
-import { plainToClass } from "class-transformer";
+import { plainToClass, Exclude } from "class-transformer";
 import { UserEntity } from "../entity/user.entity";
+import { RoleDto } from "./role.dto";
+
 
 export class UserDto {
-    @ApiHideProperty()
     @IsUUID()
     id: string;
 
@@ -16,14 +17,29 @@ export class UserDto {
     email: string;
 
     @ApiHideProperty()
-    password: string;
+    @Exclude({ toPlainOnly: true })
+    password?: string;
+
+    roles: RoleDto[];
 
     static fromEntity(entity: UserEntity): UserDto {
-        return plainToClass(UserDto, entity);
+        return plainToClass(UserDto, entity, { excludeExtraneousValues: false });
     }
 
     static toEntity(dto: UserDto): UserEntity {
-        return plainToClass(UserEntity, dto);
+        return plainToClass(UserEntity, dto, { excludeExtraneousValues: false });
     }
 
+    constructor(partial?: Partial<UserDto>) {
+        Object.assign(this, partial);
+    }
+
+    // Método auxiliar para crear una copia sin contraseña
+    toResponseObject(): UserResponseDto {
+        const { password, ...userResponse } = this;
+        return userResponse as UserResponseDto;
+    }
 }
+
+// Interfaz para los datos de usuario sin contraseña
+export interface UserResponseDto extends Omit<UserDto, 'password'> {}
