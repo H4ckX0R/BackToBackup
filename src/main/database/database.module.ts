@@ -17,7 +17,8 @@ import { DeviceEntity } from './models/entity/device.entity';
         password: configService.get('POSTGRES_PASSWORD') || 'postgres',
         database: configService.get('POSTGRES_DB') || 'postgres',
         entities: [UserEntity, RoleEntity, DeviceEntity],
-        synchronize: true,
+        cache: true,
+        synchronize: true, // TODO: Cambiar a false en producción
       }),
     }),
   ],

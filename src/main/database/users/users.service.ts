@@ -14,11 +14,20 @@ import { ORDER_OPTIONS } from '../models/dto/pageOptions.dto';
 export class UsersService {
     constructor(
         @InjectRepository(UserEntity)
-        private readonly userRepository: Repository<UserEntity>
+        private readonly userRepository: Repository<UserEntity>,
+        private readonly rolesService: RolesService
     ) {}
 
     async findOneByEmail(email: string): Promise<UserDto | null> {
-        const user = await this.userRepository.findOne({ where: { email } });
+        const user = await this.userRepository.findOne({ where: { email }, cache: true });
+        if (!user) {
+            return null;
+        }
+        return UserDto.fromEntity(user);
+    }
+
+    async findOne(id: string): Promise<UserDto | null> {
+        const user = await this.userRepository.findOne({ where: { id }, relations: { 'roles': true }, cache: true });
         if (!user) {
             return null;
         }
@@ -26,12 +35,14 @@ export class UsersService {
     }
 
     async createOne(userDto: UserDto): Promise<UserDto> {
-        //TODO: Si no existe ningún usuario en la base de datos, crear rol de admin y asignarlo a este usuario
+        if (!userDto.email) {
+            throw new Error('El email es obligatorio');
+        }
         const userExists = await this.findOneByEmail(userDto.email);
         if (userExists) {
             throw new Error('El usuario ya existe');
         }
-        
+
         const userCount = await this.userRepository.count();
         if (userCount === 0) {
             const role = new RoleDto();
@@ -69,4 +80,24 @@ export class UsersService {
         const userSaved = await this.userRepository.save(user);
         return UserDto.fromEntity(userSaved);
     }
+
+    async getUsers(pageOptionsDto: PageOptionsDto): Promise<PageDto<UserResponseDto>> {
+        const { pageNumber = 1, pageSize = 10, order = ORDER_OPTIONS.ASC } = pageOptionsDto;
+        const queryBuilder = this.userRepository.createQueryBuilder('user');
+        queryBuilder.take(pageSize);
+        queryBuilder.skip((pageNumber - 1) * pageSize);
+        queryBuilder.orderBy('user.firstName', order);
+        queryBuilder.leftJoinAndSelect('user.roles', 'roles');
+        
+        const [users, count] = await queryBuilder.getManyAndCount();
+        
+        // Convertir a DTO y eliminar contraseñas usando desestructuración
+        const userDtos = users.map(user => {
+            const userDto = UserDto.fromEntity(user);
+            return userDto.toResponseObject();
+        });
+        
+        const page = new PageDto(userDtos, pageNumber, pageSize, count, Math.ceil(count / pageSize));
+        return page;
+    }   
 }
