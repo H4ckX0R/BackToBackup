@@ -1,44 +1,43 @@
-import { ApiHideProperty } from "@nestjs/swagger";
-import { IsEmail, IsUUID } from "class-validator";
-import { plainToClass, Exclude } from "class-transformer";
-import { UserEntity } from "../entity/user.entity";
-import { RoleDto } from "./role.dto";
-
+import { ApiHideProperty } from '@nestjs/swagger';
+import { Exclude, plainToClass } from 'class-transformer';
+import { IsEmail, IsUUID } from 'class-validator';
+import { UserEntity } from '../entity/user.entity';
+import { RoleDto } from './role.dto';
 
 export class UserDto {
-    @IsUUID()
-    id: string;
+  @IsUUID()
+  id: string;
 
-    firstName: string;
+  firstName: string;
 
-    lastName: string;
+  lastName: string;
 
-    @IsEmail()
-    email: string;
+  @IsEmail()
+  email: string;
 
-    @ApiHideProperty()
-    @Exclude({ toPlainOnly: true })
-    password?: string;
+  @ApiHideProperty()
+  @Exclude({ toPlainOnly: true })
+  password?: string;
 
-    roles: RoleDto[];
+  roles: RoleDto[];
 
-    static fromEntity(entity: UserEntity): UserDto {
-        return plainToClass(UserDto, entity, { excludeExtraneousValues: false });
-    }
+  static fromEntity(entity: UserEntity): UserDto {
+    return plainToClass(UserDto, entity, { excludeExtraneousValues: false });
+  }
 
-    static toEntity(dto: UserDto): UserEntity {
-        return plainToClass(UserEntity, dto, { excludeExtraneousValues: false });
-    }
+  static toEntity(dto: UserDto): UserEntity {
+    return plainToClass(UserEntity, dto, { excludeExtraneousValues: false });
+  }
 
-    constructor(partial?: Partial<UserDto>) {
-        Object.assign(this, partial);
-    }
+  constructor(partial?: Partial<UserDto>) {
+    Object.assign(this, partial);
+  }
 
-    // Método auxiliar para crear una copia sin contraseña
-    toResponseObject(): UserResponseDto {
-        const { password, ...userResponse } = this;
-        return userResponse as UserResponseDto;
-    }
+  // Método auxiliar para crear una copia sin contraseña
+  toResponseObject(): UserResponseDto {
+    const { password, ...userResponse } = this;
+    return userResponse as UserResponseDto;
+  }
 }
 
 // Interfaz para los datos de usuario sin contraseña

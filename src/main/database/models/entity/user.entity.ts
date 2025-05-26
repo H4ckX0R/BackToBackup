@@ -1,9 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { RoleEntity } from './role.entity';
 
 @Entity()
 export class UserEntity {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -12,10 +12,10 @@ export class UserEntity {
   @Column()
   lastName: string;
 
-  @Column({unique: true})
+  @Column({ unique: true })
   email: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   password?: string;
 
   @ManyToMany(() => RoleEntity)

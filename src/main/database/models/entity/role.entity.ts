@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany } from 'typeorm';
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { UserEntity } from './user.entity';
 
 export enum PermissionLevel {
@@ -7,8 +7,14 @@ export enum PermissionLevel {
   DELETE = 'delete',
 }
 
+export type Permissions = {
+  adminUsers: PermissionLevel[];
+  adminSystem: PermissionLevel[];
+  adminRoles: PermissionLevel[];
+};
+
 @Entity()
-export class RoleEntity {
+export class RoleEntity implements Permissions {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

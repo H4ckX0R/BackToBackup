@@ -1,22 +1,32 @@
-import { BadRequestException, ConflictException, Controller, UnauthorizedException } from '@nestjs/common';
 import {
-  ApiCookieAuth,
+  BadRequestException,
+  Controller,
+  Get,
+  HttpCode,
+  InternalServerErrorException,
+  Post,
+  Request,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
   ApiBody,
+  ApiConflictResponse,
+  ApiCookieAuth,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiUnauthorizedResponse,
-  ApiCreatedResponse,
-  ApiConflictResponse,
-  ApiBadRequestResponse,
 } from '@nestjs/swagger';
-import { HttpCode, UseGuards } from '@nestjs/common';
-import { Post, Get } from '@nestjs/common';
-import { Request } from '@nestjs/common';
-import { AuthService } from '../auth.service';
-import { LocalAuthGuard } from '../local-auth.guard';
-import { JwtAuthGuard } from '../jwt-auth.guard';
-import { UsersService } from '../../database/users/users.service';
-import { JwtRefreshAuthGuard } from '../jwt-auth-refresh.guard';
+import { Response } from 'express';
+import { LoggedInRequestWithUser, LoginRequestWithUser, RefreshRequestWithUser, ValidationError } from 'src/common-utils';
 import { UserDto } from '../../database/models/dto/user.dto';
+import { UsersService } from '../../database/users/users.service';
+import { AuthService } from '../auth.service';
+import { JwtRefreshAuthGuard } from '../guards/jwt-auth-refresh.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { LocalAuthGuard } from '../guards/local-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -46,23 +56,23 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @HttpCode(200)
   @Post('login')
-  async login(@Request() req: any) {
+  async login(@Request() req: LoginRequestWithUser, @Res() res: Response) {
     const { user, token, refreshToken } = await this.authService.loginUser(req.user);
-    req.res.cookie('token', token.access_token, {
+    res.cookie('token', token.access_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
       maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
     });
 
-    req.res.cookie('refresh_token', refreshToken.refresh_token, {
+    res.cookie('refresh_token', refreshToken.refresh_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
       maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
     });
-    
-    return user.toResponseObject();
+
+    res.send(user.toResponseObject());
   }
 
   /**
@@ -91,39 +101,43 @@ export class AuthController {
   })
   @HttpCode(201)
   @Post('register')
-  async register(@Request() req: any) {
-
+  async register(@Request() req: any, @Res() res: Response) {
+    // FIXME: Add dto for this request body and validate it with class-validator
     if (!req.body.firstName || !req.body.lastName || !req.body.email || !req.body.password) {
       throw new BadRequestException('Faltan datos');
     }
 
-    const newUser = new UserDto();
+    const newUser: UserDto = new UserDto();
     newUser.firstName = req.body.firstName;
     newUser.lastName = req.body.lastName;
     newUser.email = req.body.email;
     newUser.password = req.body.password;
 
     try {
-      const { user, token, refreshToken } =
-        await this.authService.registerUser(newUser);
-      req.res.cookie('token', token.access_token, {
+      const { user, token, refreshToken } = await this.authService.registerUser(newUser as UserDto & { password: string });
+      console.log('welldone');
+      res.cookie('token', token.access_token, {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
         maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
       });
 
-      req.res.cookie('refresh_token', refreshToken.refresh_token, {
+      res.cookie('refresh_token', refreshToken.refresh_token, {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
         maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
       });
-    
-      
-      return user.toResponseObject();
+
+      res.send(user.toResponseObject());
     } catch (error) {
-      throw new ConflictException(error.message);
+      if (error instanceof ValidationError) {
+        throw new BadRequestException(error.message);
+      } else {
+        console.error('Error al registrar el usuario:', error);
+        throw new InternalServerErrorException('Error al registrar el usuario');
+      }
     }
   }
 
@@ -140,15 +154,15 @@ export class AuthController {
   @UseGuards(JwtRefreshAuthGuard)
   @HttpCode(200)
   @Post('refresh')
-  async refreshToken(@Request() req: any) {
+  async refreshToken(@Request() req: RefreshRequestWithUser, @Res() res: Response) {
     const token = await this.authService.createJWT(req.user);
-    req.res.cookie('token', token.access_token, {
+    res.cookie('token', token.access_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
       maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
     });
-    return;
+    res.send();
   }
 
   /**
@@ -161,10 +175,10 @@ export class AuthController {
   })
   @HttpCode(200)
   @Post('logout')
-  async logout(@Request() req: any) {
-    req.res.clearCookie('token');
-    req.res.clearCookie('refresh_token');
-    return;
+  logout(@Request() req: any, @Res() res: Response) {
+    res.clearCookie('token');
+    res.clearCookie('refresh_token');
+    res.send();
   }
 
   /**
@@ -181,12 +195,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   @Get('me')
-  async getMe(@Request() req: any) {
+  async getMe(@Request() req: LoggedInRequestWithUser) {
     const user = await this.usersService.findOne(req.user.id);
     if (!user) {
       throw new UnauthorizedException();
     }
-    
+
     return user.toResponseObject();
   }
 }
