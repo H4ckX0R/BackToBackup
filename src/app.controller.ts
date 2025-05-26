@@ -5,6 +5,10 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  /**
+   * Prueba de la API y Generación de Swagger
+   * @deprecated
+   */
   @Get()
   getHello(): string {
     return this.appService.getHello();
