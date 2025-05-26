@@ -40,6 +40,8 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your_jwt_refresh_secret}
     entrypoint: ['/bin/sh', '-c', 'echo "This is a dev container, application is launched via exec command" && while :; do sleep 2073600; done']
     volumes:
       - ../:/root/app
