@@ -1,9 +1,17 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+  OneToMany,
+} from 'typeorm';
 import { RoleEntity } from './role.entity';
+import { DeviceEntity } from './device.entity';
 
 @Entity()
 export class UserEntity {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -12,13 +20,16 @@ export class UserEntity {
   @Column()
   lastName: string;
 
-  @Column({unique: true})
+  @Column({ unique: true })
   email: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   password?: string;
 
   @ManyToMany(() => RoleEntity)
   @JoinTable()
   roles: RoleEntity[];
+
+  @OneToMany(() => DeviceEntity, (device) => device.owner)
+  devices: DeviceEntity[];
 }

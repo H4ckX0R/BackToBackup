@@ -1,8 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { UserEntity } from './user.entity';
 
 @Entity()
 export class DeviceEntity {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -14,4 +15,6 @@ export class DeviceEntity {
   @Column()
   os: string;
 
+  @ManyToOne(() => UserEntity, (user) => user.devices)
+  owner: UserEntity;
 }
