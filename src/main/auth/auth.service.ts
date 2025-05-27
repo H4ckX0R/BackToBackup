@@ -1,8 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../database/users/users.service';
-import { UserDto } from '../database/models/dto/user.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+// import { compareSync, hash } from 'bcrypt';
+import { RefreshTokenPayload } from 'src/common-utils';
+import { UserDto } from '../database/models/dto/user.dto';
+import { UsersService } from '../database/users/users.service';
 
 @Injectable()
 export class AuthService {
@@ -12,17 +14,18 @@ export class AuthService {
   ) {}
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findOneByEmail(email);
+    if (!user?.password) return null;
     if (user && bcrypt.compareSync(password, user.password)) {
       return user.toResponseObject();
     }
     return null;
   }
 
-  async createJWT(user: UserDto) {
-    const payload = {
-      id: user.id,
-      email: user.email,
-    };
+  async createJWT(user: RefreshTokenPayload) {
+    const email = await this.usersService.findUserEmail(user.id);
+    if (!email) throw new UnauthorizedException('Usuario no encontrado');
+    console.log('usuario si encontrado');
+    const payload = { id: user.id, email: email };
     return {
       access_token: this.jwtService.sign(payload, {
         secret: process.env.JWT_SECRET,
@@ -31,7 +34,7 @@ export class AuthService {
     };
   }
 
-  async createRefreshToken(user: UserDto) {
+  createRefreshToken(user: UserDto) {
     const payload = {
       id: user.id,
     };
@@ -43,13 +46,13 @@ export class AuthService {
     };
   }
 
-  async registerUser(userDto: UserDto) {
+  async registerUser(userDto: UserDto & { password: string }) {
     const hashedPassword = await bcrypt.hash(userDto.password, 12);
     userDto.password = hashedPassword;
     const user = await this.usersService.createOne(userDto);
-    
+
     const token = await this.createJWT(user);
-    const refreshToken = await this.createRefreshToken(user);
+    const refreshToken = this.createRefreshToken(user);
     return { user: user, token, refreshToken };
   }
 
@@ -58,9 +61,9 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
-    
+
     const token = await this.createJWT(user);
-    const refreshToken = await this.createRefreshToken(user);
+    const refreshToken = this.createRefreshToken(user);
     return { user: user, token, refreshToken };
   }
 }

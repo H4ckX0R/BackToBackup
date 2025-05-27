@@ -1,8 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { UserEntity } from './user.entity';
 
 @Entity()
 export class DeviceEntity {
+  @PrimaryGeneratedColumn('uuid')
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

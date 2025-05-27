@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, UpdateResult, DeleteResult } from 'typeorm';
-import { RoleEntity } from '../models/entity/role.entity';
+import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { RoleDto } from '../models/dto/role.dto';
+import { RoleEntity } from '../models/entity/role.entity';
 
 @Injectable()
 export class RolesService {
@@ -12,9 +12,7 @@ export class RolesService {
   ) {}
 
   async getAllRoles(): Promise<RoleDto[]> {
-    return (await this.roleRepository.find()).map((role) =>
-      RoleDto.fromEntity(role),
-    );
+    return (await this.roleRepository.find()).map((role) => RoleDto.fromEntity(role));
   }
 
   async findOne(id: string): Promise<RoleDto> {

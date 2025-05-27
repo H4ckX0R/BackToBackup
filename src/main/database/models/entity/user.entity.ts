@@ -1,13 +1,6 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  ManyToMany,
-  JoinTable,
-  OneToMany,
-} from 'typeorm';
-import { RoleEntity } from './role.entity';
+import { Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { DeviceEntity } from './device.entity';
+import { RoleEntity } from './role.entity';
 
 @Entity()
 export class UserEntity {

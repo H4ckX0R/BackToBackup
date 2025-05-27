@@ -1,11 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
-import { UsersService } from '../database/users/users.service';
+import { LoggedInTokenPayload } from 'src/common-utils';
+import { UsersService } from '../../database/users/users.service';
 
 @Injectable()
-export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
+export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     readonly usersService: UsersService,
@@ -21,12 +22,8 @@ export class JwtAdminStrategy extends PassportStrategy(Strategy, 'jwt-admin') {
     });
   }
 
-  async validate(payload: { id: string }) {
-    const user = await this.usersService.findOne(payload.id);
-    if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
-    }
-    // FIXME: For admin jwt put roles inside JWT claims
-    return { id: payload.id, email: user.email, roles: user.roles };
+  validate(payload: LoggedInTokenPayload) {
+    console.log('Payload JWT:', payload);
+    return { id: payload.id, email: payload.email };
   }
 }
