@@ -25,3 +25,9 @@ export class RoleDto implements Permissions {
     return plainToClass(RoleEntity, dto);
   }
 }
+
+export type EffectivePermissions = {
+  adminUsers?: PermissionLevel[];
+  adminSystem?: PermissionLevel[];
+  adminRoles?: PermissionLevel[];
+};

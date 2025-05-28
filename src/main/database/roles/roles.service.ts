@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
-import { RoleDto } from '../models/dto/role.dto';
-import { RoleEntity } from '../models/entity/role.entity';
+import { EffectivePermissions, RoleDto } from '../models/dto/role.dto';
+import { PermissionLevel, RoleEntity } from '../models/entity/role.entity';
 
 @Injectable()
 export class RolesService {
@@ -23,9 +23,9 @@ export class RolesService {
     return RoleDto.fromEntity(role);
   }
 
-  async create(role: RoleDto): Promise<RoleDto> {
+  async create(role: RoleDto): Promise<RoleEntity> {
     const roleEntity = RoleDto.toEntity(role);
-    return RoleDto.fromEntity(await this.roleRepository.save(roleEntity));
+    return await this.roleRepository.save(roleEntity);
   }
 
   async update(id: string, role: RoleDto): Promise<UpdateResult> {
@@ -36,5 +36,28 @@ export class RolesService {
 
   async delete(id: string): Promise<DeleteResult> {
     return await this.roleRepository.delete(id);
+  }
+
+  calculateEfectivePermissions(roles: RoleEntity[] | RoleDto[]): EffectivePermissions {
+    if (!roles || roles.length === 0) {
+      return {};
+    }
+
+    // Usamos Sets para eliminar duplicados sobre la marcha
+    const adminUsersSet = new Set<PermissionLevel>();
+    const adminSystemSet = new Set<PermissionLevel>();
+    const adminRolesSet = new Set<PermissionLevel>();
+
+    for (const role of roles) {
+      role.adminUsers.forEach((p) => adminUsersSet.add(p));
+      role.adminSystem.forEach((p) => adminSystemSet.add(p));
+      role.adminRoles.forEach((p) => adminRolesSet.add(p));
+    }
+
+    return {
+      adminUsers: Array.from(adminUsersSet),
+      adminSystem: Array.from(adminSystemSet),
+      adminRoles: Array.from(adminRolesSet),
+    };
   }
 }

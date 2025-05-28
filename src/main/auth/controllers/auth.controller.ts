@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -20,10 +21,13 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import { LoggedInRequestWithUser, LoginRequestWithUser, RefreshRequestWithUser, ValidationError } from 'src/common-utils';
+import { ValidationError } from 'src/common-utils';
 import { UserDto } from '../../database/models/dto/user.dto';
+import { RolesService } from '../../database/roles/roles.service';
 import { UsersService } from '../../database/users/users.service';
 import { AuthService } from '../auth.service';
+import { CreateUserDto } from '../dto/createUser.dto';
+import { LoginUserDto } from '../dto/loginUser.dto';
 import { JwtRefreshAuthGuard } from '../guards/jwt-auth-refresh.guard';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../guards/local-auth.guard';
@@ -33,19 +37,10 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
+    private readonly rolesService: RolesService,
   ) {}
-  /**
-   * Endpoint de inicio de sesión
-   */
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        email: { type: 'string', example: 'user@example.com' },
-        password: { type: 'string', example: 'password' },
-      },
-    },
-  })
+
+  @ApiBody({ type: LoginUserDto })
   @ApiOkResponse({
     description: 'Datos del usuario y una cookie con el token JWT',
     type: UserDto,
@@ -56,8 +51,8 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @HttpCode(200)
   @Post('login')
-  async login(@Request() req: LoginRequestWithUser, @Res() res: Response) {
-    const { user, token, refreshToken } = await this.authService.loginUser(req.user);
+  async login(@Body() userDto: LoginUserDto, @Res() res: Response) {
+    const { user, token, refreshToken } = await this.authService.loginUser(userDto);
     res.cookie('token', token.access_token, {
       httpOnly: true,
       secure: true,
@@ -72,22 +67,11 @@ export class AuthController {
       maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
     });
 
-    res.send(user.toResponseObject());
+    res.send(user);
   }
 
-  /**
-   * Endpoint de registro
-   */
   @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        firstName: { type: 'string', example: 'John' },
-        lastName: { type: 'string', example: 'Doe' },
-        email: { type: 'string', example: 'user@example.com' },
-        password: { type: 'string', example: 'password' },
-      },
-    },
+    type: CreateUserDto,
   })
   @ApiCreatedResponse({
     description: 'El usuario se ha creado',
@@ -101,21 +85,9 @@ export class AuthController {
   })
   @HttpCode(201)
   @Post('register')
-  async register(@Request() req: any, @Res() res: Response) {
-    // FIXME: Add dto for this request body and validate it with class-validator
-    if (!req.body.firstName || !req.body.lastName || !req.body.email || !req.body.password) {
-      throw new BadRequestException('Faltan datos');
-    }
-
-    const newUser: UserDto = new UserDto();
-    newUser.firstName = req.body.firstName;
-    newUser.lastName = req.body.lastName;
-    newUser.email = req.body.email;
-    newUser.password = req.body.password;
-
+  async register(@Body() createUserDto: CreateUserDto, @Res() res: Response) {
     try {
-      const { user, token, refreshToken } = await this.authService.registerUser(newUser as UserDto & { password: string });
-      console.log('welldone');
+      const { user, token, refreshToken } = await this.authService.registerUser(createUserDto);
       res.cookie('token', token.access_token, {
         httpOnly: true,
         secure: true,
@@ -130,7 +102,7 @@ export class AuthController {
         maxAge: 40 * 24 * 60 * 60 * 1000, // 40 días
       });
 
-      res.send(user.toResponseObject());
+      res.send(user);
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new BadRequestException(error.message);
@@ -141,10 +113,8 @@ export class AuthController {
     }
   }
 
-  /**
-   * Endpoint para renovar el token JWT
-   */
   @ApiCookieAuth('refresh_token')
+  @ApiCookieAuth('token')
   @ApiOkResponse({
     description: 'Cookie con el token JWT nuevo',
   })
@@ -154,8 +124,8 @@ export class AuthController {
   @UseGuards(JwtRefreshAuthGuard)
   @HttpCode(200)
   @Post('refresh')
-  async refreshToken(@Request() req: RefreshRequestWithUser, @Res() res: Response) {
-    const token = await this.authService.createJWT(req.user);
+  refreshToken(@Request() req: Request & { user: { user: UserDto } }, @Res() res: Response) {
+    const token = this.authService.createJWT(req.user.user);
     res.cookie('token', token.access_token, {
       httpOnly: true,
       secure: true,
@@ -175,7 +145,7 @@ export class AuthController {
   })
   @HttpCode(200)
   @Post('logout')
-  logout(@Request() req: any, @Res() res: Response) {
+  logout(@Res() res: Response) {
     res.clearCookie('token');
     res.clearCookie('refresh_token');
     res.send();
@@ -195,12 +165,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   @Get('me')
-  async getMe(@Request() req: LoggedInRequestWithUser) {
-    const user = await this.usersService.findOne(req.user.id);
+  async getMe(@Request() req: Request & { user: { user: UserDto } }) {
+    const user = await this.usersService.findOne(req.user.user.id, true);
     if (!user) {
       throw new UnauthorizedException();
     }
-
-    return user.toResponseObject();
+    return UserDto.fromEntity(user, this.rolesService.calculateEfectivePermissions(user.roles));
   }
 }

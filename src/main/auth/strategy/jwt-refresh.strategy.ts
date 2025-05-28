@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
-import { RefreshTokenPayload } from 'src/common-utils';
+import { UserDto } from '../../database/models/dto/user.dto';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
@@ -18,7 +18,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     });
   }
 
-  validate(payload: RefreshTokenPayload) {
-    return { id: payload.id };
+  validate(payload: UserDto): UserDto {
+    return payload;
   }
 }

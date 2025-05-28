@@ -1,44 +1,39 @@
-import { ApiHideProperty } from '@nestjs/swagger';
-import { Exclude, plainToClass } from 'class-transformer';
-import { IsEmail, IsUUID } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { plainToClass } from 'class-transformer';
+import { IsEmail, IsString, IsUUID } from 'class-validator';
 import { UserEntity } from '../entity/user.entity';
-import { RoleDto } from './role.dto';
+import { EffectivePermissions } from './role.dto';
 
 export class UserDto {
   @IsUUID()
   id: string;
 
+  @IsString()
+  @ApiProperty({ type: 'string', description: 'Nombre del usuario', example: 'John' })
   firstName: string;
 
+  @IsString()
+  @ApiProperty({ type: 'string', description: 'Apellido del usuario', example: 'Doe' })
   lastName: string;
 
   @IsEmail()
+  @ApiProperty({ type: 'string', description: 'Email del usuario', example: 'user@example.com' })
   email: string;
 
-  @ApiHideProperty()
-  @Exclude({ toPlainOnly: true })
-  password?: string;
+  @ApiProperty()
+  effectivePermissions: EffectivePermissions;
 
-  roles: RoleDto[];
-
-  static fromEntity(entity: UserEntity): UserDto {
-    return plainToClass(UserDto, entity, { excludeExtraneousValues: false });
+  static fromEntity(entity: UserEntity, effectivePermissions: EffectivePermissions): UserDto {
+    const userDto = plainToClass(UserDto, entity, { excludePrefixes: ['roles', 'devices', 'password'] });
+    userDto.effectivePermissions = effectivePermissions;
+    return userDto;
   }
 
   static toEntity(dto: UserDto): UserEntity {
-    return plainToClass(UserEntity, dto, { excludeExtraneousValues: false });
+    return plainToClass(UserEntity, dto, { excludePrefixes: ['roles', 'devices'] });
   }
 
   constructor(partial?: Partial<UserDto>) {
     Object.assign(this, partial);
   }
-
-  // Método auxiliar para crear una copia sin contraseña
-  toResponseObject(): UserResponseDto {
-    const { password, ...userResponse } = this;
-    return userResponse as UserResponseDto;
-  }
 }
-
-// Interfaz para los datos de usuario sin contraseña
-export interface UserResponseDto extends Omit<UserDto, 'password'> {}
