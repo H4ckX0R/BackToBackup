@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ValidationError } from 'src/common-utils';
+import { CreateUserWithRolesDto } from 'src/main/admin/dto/createUserWithRoles.dto';
+import { UserWithRolesDto } from 'src/main/admin/dto/userWithRoles.dto';
 import { DeleteResult, Repository } from 'typeorm';
 import { CreateUserDto } from '../../auth/dto/createUser.dto';
 import { PageDto } from '../models/dto/page.dto';
@@ -42,7 +44,7 @@ export class UsersService {
     return user;
   }
 
-  async createOne(createUserDto: CreateUserDto): Promise<UserDto> {
+  async createOne(createUserDto: CreateUserDto | CreateUserWithRolesDto): Promise<UserDto> {
     const userExists = await this.findOneByEmail(createUserDto.email, true);
     if (userExists) {
       throw new ValidationError('El usuario ya existe');
@@ -85,7 +87,7 @@ export class UsersService {
     return UserDto.fromEntity(userSaved, this.rolesService.calculateEfectivePermissions(userSaved.roles));
   }
 
-  async getUsers(pageOptionsDto: PageOptionsDto): Promise<PageDto<UserDto>> {
+  async getUsers(pageOptionsDto: PageOptionsDto): Promise<PageDto<UserWithRolesDto>> {
     const { pageNumber = 1, pageSize = 10, order = ORDER_OPTIONS.ASC } = pageOptionsDto;
     const queryBuilder = this.userRepository.createQueryBuilder('user');
     queryBuilder.take(pageSize);
@@ -96,9 +98,11 @@ export class UsersService {
     const [users, count] = await queryBuilder.getManyAndCount();
 
     // Convertir a DTO y eliminar contraseñas usando desestructuración
-    const userDtos: UserDto[] = users.map((user: UserEntity) => {
+    const userDtos: UserWithRolesDto[] = users.map((user: UserEntity) => {
       const userDto = UserDto.fromEntity(user, this.rolesService.calculateEfectivePermissions(user.roles));
-      return userDto;
+      const userWithRolesDto = new UserWithRolesDto(userDto);
+      userWithRolesDto.roles = user.roles;
+      return userWithRolesDto;
     });
 
     const page = new PageDto(userDtos, pageNumber, pageSize, count, Math.ceil(count / pageSize));
