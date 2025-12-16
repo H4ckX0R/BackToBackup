@@ -47,12 +47,11 @@ services:
       JWT_DEVICE_SECRET: ${JWT_DEVICE_SECRET:-your_jwt_device_secret}
       JWT_DEVICE_REFRESH_SECRET: ${JWT_DEVICE_REFRESH_SECRET:-your_jwt_device_refresh_secret}
     volumes:
-      - ..:/root/app
+      - ../packages/api:/root/app/packages/api
       - api_node_modules:/root/app/packages/api/node_modules
     command: >
       sh -c "
-        cd /root/app && npm install &&
-        cd /root/app/packages/api &&
+        npm install &&
         npm run start:dev
       "
     ports:
