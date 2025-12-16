@@ -69,7 +69,7 @@ services:
     environment:
       NODE_ENV: development
     volumes:
-      - ../../packages/frontend:/root/app/packages/frontend
+      - ../packages/frontend:/root/app/packages/frontend
       - frontend_node_modules:/root/app/packages/frontend/node_modules
     command: >
       sh -c "
