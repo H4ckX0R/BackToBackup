@@ -32,6 +32,7 @@ services:
     image: node:22-alpine
     container_name: backtobackup-api
     restart: on-failure
+    working_dir: /root/app/packages/api
     environment:
       DB_HOST: ${POSTGRES_HOST:-db}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -42,11 +43,45 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your_jwt_refresh_secret}
-    entrypoint: ['/bin/sh', '-c', 'echo "This is a dev container, application is launched via exec command" && while :; do sleep 2073600; done']
+      JWT_REGISTER_DEVICE_SECRET: ${JWT_REGISTER_DEVICE_SECRET:-your_jwt_register_device_secret}
+      JWT_DEVICE_SECRET: ${JWT_DEVICE_SECRET:-your_jwt_device_secret}
+      JWT_DEVICE_REFRESH_SECRET: ${JWT_DEVICE_REFRESH_SECRET:-your_jwt_device_refresh_secret}
     volumes:
-      - ../:/root/app
+      - ..:/root/app
+      - api_node_modules:/root/app/packages/api/node_modules
+    command: >
+      sh -c "
+        cd /root/app && npm install &&
+        cd /root/app/packages/api &&
+        npm run start:dev
+      "
+    ports:
+      - "3000:3000"
     depends_on:
       - db
       - minio
+
+  frontend:
+    image: node:22-alpine
+    container_name: backtobackup-frontend
+    restart: on-failure
+    working_dir: /root/app/packages/frontend
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ../../packages/frontend:/root/app/packages/frontend
+      - frontend_node_modules:/root/app/packages/frontend/node_modules
+    command: >
+      sh -c "
+        npm install &&
+        npm run start
+      "
     ports:
-      - "3000:3000"
+      - "4200:4200"
+    depends_on:
+      - api
+
+volumes:
+  api_node_modules:
+  frontend_node_modules:
+

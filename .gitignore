@@ -2,10 +2,10 @@
 /dist
 /node_modules
 /build
-
-# Logs
-logs
-*.log
+packages/*/dist
+packages/*/node_modules
+packages/*/build
+packages/frontend/.angular
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
