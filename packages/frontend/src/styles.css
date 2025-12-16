@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@plugin "tailwindcss-primeui";
+
+.p-dialog-content {
+    overflow-y: visible;
+}
+
+.p-menubar-submenu {
+    z-index: 3;
+}
+
+.p-inplace-display:not(.p-disabled):hover {
+    background: none;
+    color: inherit;
+}
+
+.p-inplace-display {
+    padding: 0;
+}
+
+.p-toolbar-center {
+    width: 100%;
+}

@@ -1,0 +1,139 @@
+<main class="h-screen flex flex-col">
+    <app-navbar></app-navbar>
+    <div class="flex-1 overflow-y-auto">
+        <p-table [value]="rolesList" stripedRows [rowHover]="true" [paginator]="false" [rows]="20"
+            [totalRecords]="totalElements" selectionMode="single" [scrollable]="true" scrollHeight="flex"
+            styleClass="h-full" [resizableColumns]="true" [showCurrentPageReport]="true"
+            [currentPageReportTemplate]="'Viendo del {first} al {last} de {totalRecords} roles'" [showGridlines]="true"
+            [lazy]="true" (onLazyLoad)="onLazyLoad($event)" (onRowSelect)="onRowSelect($event)"
+            [(selection)]="selectedRole" [metaKeySelection]="false">
+            <ng-template #caption>
+                <div class="flex items-center justify-between">
+                    <span class="text-xl font-bold">Roles</span>
+                    <p-button label="Nuevo rol" severity="success" (onClick)="modalNuevoRol()"
+                        [disabled]="!puedoModificar">
+                        <ng-template pTemplate="icon">
+                            <ng-icon name="bootstrapPeopleFill" size="20"></ng-icon>
+                        </ng-template>
+                    </p-button>
+                </div>
+            </ng-template>
+            <ng-template #header>
+                <tr>
+                    <th pResizableColumn rowspan="2">Nombre</th>
+                    <th pResizableColumn colspan="3">Permisos</th>
+                </tr>
+                <tr>
+                    <th>Usuarios</th>
+                    <th>Roles</th>
+                    <th>Sistema</th>
+                </tr>
+            </ng-template>
+            <ng-template #body let-role>
+                <tr [pSelectableRow]="role">
+                    <td>{{ role.name }}</td>
+                    <td>
+                        <div class="flex flex-wrap gap-2">
+                            @for (perms of role.adminUsers; track $index) {
+                            <p-tag [value]="perms"></p-tag>
+                            }
+                        </div>
+                    </td>
+                    <td>
+                        <div class="flex flex-wrap gap-2">
+                            @for (perms of role.adminRoles; track $index) {
+                            <p-tag [value]="perms"></p-tag>
+                            }
+                        </div>
+                    </td>
+                    <td>
+                        <div class="flex flex-wrap gap-2">
+                            @for (perms of role.adminSystem; track $index) {
+                            <p-tag [value]="perms"></p-tag>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+</main>
+
+
+<p-dialog [header]="(modalEditRoleId ? 'Editar' : 'Nuevo') + ' rol'" [(visible)]="modalEditVisible"
+    styleClass="m-5 w-full md:w-1/2 lg:w-1/3" [modal]="true" [draggable]="false" [dismissableMask]="true"
+    resizable="false" blockScroll="true" (onHide)="deseleccionarRol()">
+
+    <ng-template #content styleClass="overflow-y-visible">
+        <form class="flex flex-col gap-2 overflow-y-visible" [formGroup]="roleForm">
+            <div>
+                <label>Nombre</label>
+                <input type="text" pInputText class="w-full" variant="filled" formControlName="name" />
+            </div>
+            <div>
+                <label>Permisos sobre usuarios</label>
+                <p-multiselect [options]="tiposPermisos" formControlName="adminUsers" placeholder="Sin permisos"
+                    display="chip" styleClass="w-full" variant="filled" showToggleAll="false" resetFilterOnHide="true"
+                    filter="false" [maxSelectedLabels]="4">
+                    <ng-template #chipicon>
+                        <ng-icon name="bootstrapXCircle" size="20" class="-mt-0.5"></ng-icon>
+                    </ng-template>
+                </p-multiselect>
+            </div>
+            <div>
+                <label>Permisos sobre roles</label>
+                <p-multiselect [options]="tiposPermisos" formControlName="adminRoles"
+                    placeholder="Sin permisos" display="chip" styleClass="w-full" variant="filled" showToggleAll="false"
+                    filter="false" [maxSelectedLabels]="4" resetFilterOnHide="true">
+                    <ng-template #chipicon>
+                        <ng-icon name="bootstrapXCircle" size="20" class="-mt-0.5"></ng-icon>
+                    </ng-template>
+                </p-multiselect>
+            </div>
+            <div>
+                <label>Permisos sobre sistema</label>
+                <p-multiselect [options]="tiposPermisos" formControlName="adminSystem" placeholder="Sin permisos"
+                    display="chip" styleClass="w-full" variant="filled" showToggleAll="false" filter="false"
+                    [maxSelectedLabels]="4" resetFilterOnHide="true">
+                    <ng-template #chipicon>
+                        <ng-icon name="bootstrapXCircle" size="20" class="-mt-0.5"></ng-icon>
+                    </ng-template>
+                </p-multiselect>
+            </div>
+        </form>
+    </ng-template>
+
+    <ng-template #footer>
+        <div class="flex justify-between gap-2 w-full">
+            <p-button label="Eliminar" severity="danger" (onClick)="confirmEliminar($event)"
+                [disabled]="!modalEditRoleId || !puedoEliminar">
+                <ng-template pTemplate="icon">
+                    <ng-icon name="bootstrapPersonFillDash" size="20"></ng-icon>
+                </ng-template>
+            </p-button>
+            <p-button [label]="modalEditRoleId ? 'Guardar' : 'Crear'" severity="success" (onClick)="guardarRol()"
+                [disabled]="!puedoModificar || roleForm.invalid">
+                <ng-template pTemplate="icon">
+                    <ng-icon name="bootstrapPersonLinesFill" size="20"></ng-icon>
+                </ng-template>
+            </p-button>
+        </div>
+    </ng-template>
+
+    <ng-template #closeicon>
+        <ng-icon name="bootstrapXLg" size="20" class="mt-1.5"></ng-icon>
+    </ng-template>
+</p-dialog>
+
+<p-confirmpopup>
+    <ng-template #content>
+        <ng-icon name="bootstrapExclamationTriangle" size="30" color="#ef4444"></ng-icon>
+        <p>¿Estás seguro de eliminar el rol?</p>
+    </ng-template>
+    <ng-template #accepticon>
+        <ng-icon name="bootstrapTrashFill" size="20"></ng-icon>
+    </ng-template>
+    <ng-template #rejecticon>
+        <ng-icon name="bootstrapPeopleFill" size="20"></ng-icon>
+    </ng-template>
+</p-confirmpopup>

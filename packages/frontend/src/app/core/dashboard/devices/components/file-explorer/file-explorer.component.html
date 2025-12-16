@@ -1,0 +1,83 @@
+<div class="me-2">
+    <p-toolbar styleClass="w-full p-0 my-2">
+        <ng-template #center>
+            <div class="flex items-center justify-between w-full no-wrap">
+
+
+                <div class="flex items-center gap-0.5">
+                    <p-button outlined severity="info" class="m-1">
+                        <ng-template #icon>
+                            <ng-icon name="bootstrapPcDisplay" size="20" class="-m-1"></ng-icon>
+                        </ng-template>
+                    </p-button>
+                    <p-button text severity="secondary" class="m-1" [disabled]="items.length <= 1" (click)="navigateTo(items.length - 1)">
+                        <ng-template #icon>
+                            <ng-icon name="bootstrapArrowUp" size="20" class="-m-1"></ng-icon>
+                        </ng-template>
+                    </p-button>
+                </div>
+
+                <p-inplace [preventClick]="true" styleClass="w-full p-0 text-center" class="w-full" [active]="editBreadcrumb">
+                    <ng-template #display>
+                        <p-breadcrumb [model]="items" styleClass="w-full p-1 bg-transparent translate-y-0.5"
+                            (dblclick)="editBreadcrumb = true">
+                        </p-breadcrumb>
+                    </ng-template>
+                    <ng-template #content>
+                        <input type="text" pInputText [(ngModel)]="fullPath"
+                            (keydown.enter)="editBreadcrumb = false; navigateToPath(fullPath)"
+                            (keydown.escape)="editBreadcrumb = false" class="w-full p-1 m-0" />
+                    </ng-template>
+                </p-inplace>
+
+                <p-selectbutton [options]="displayOptions" [(ngModel)]="value" optionValue="value" optionLabel="label" optionDisabled="disabled" [allowEmpty]="false" [unselectable]="true" class="mx-1">
+                    <ng-template #item let-item>
+                        <ng-icon [name]="item.icon" size="20" class="-m-1"></ng-icon>
+                    </ng-template>
+                </p-selectbutton>
+
+            </div>
+        </ng-template>
+    </p-toolbar>
+</div>
+
+
+
+
+<p-dataview [value]="files" lazy="true" (onLazyLoad)="onLazyLoad($event)" variant="list" scrollable="true" [layout]="value" >
+    <ng-template #list let-files>
+        <div class="flex flex-col gap-2 p-2 overflow-y-scroll h-[calc(100vh-10em)]">
+            @for(file of files; track file.name) {
+
+            @if(file.dir) {
+            <p-button type="button" severity="secondary" [label]="file.name" class="w-full justify-start"
+                styleClass="w-full justify-start" (click)="openFolder(file.name)">
+                <ng-icon name="bootstrapFolder" size="25"></ng-icon>
+            </p-button>
+            } @else {
+            <p-button type="button" severity="secondary" [label]="file.name" class="w-full justify-start"
+                styleClass="w-full justify-start">
+                @if (file.name.endsWith('.pdf')) {
+                <ng-icon name="bootstrapFileEarmarkPdf" size="25"></ng-icon>
+                } @else if (file.name.endsWith('.jpg') || file.name.endsWith('.jpeg') || file.name.endsWith('.png') ||
+                file.name.endsWith('.gif')) {
+                <ng-icon name="bootstrapFileEarmarkImage" size="25"></ng-icon>
+                } @else if (file.name.endsWith('.mp4') || file.name.endsWith('.avi') || file.name.endsWith('.mkv')) {
+                <ng-icon name="bootstrapFileEarmarkPlay" size="25"></ng-icon>
+                } @else if (file.name.endsWith('.mp3') || file.name.endsWith('.wav') || file.name.endsWith('.ogg') ||
+                file.name.endsWith('.flac') || file.name.endsWith('.m4a')) {
+                <ng-icon name="bootstrapFileEarmarkMusic" size="25"></ng-icon>
+                } @else if (file.name.endsWith('.zip') || file.name.endsWith('.tar') || file.name.endsWith('.gz') ||
+                file.name.endsWith('.7z') || file.name.endsWith('.rar')) {
+                <ng-icon name="bootstrapFileEarmarkZip" size="25"></ng-icon>
+                } @else if (file.name.endsWith('.txt')) {
+                <ng-icon name="bootstrapFileEarmarkText" size="25"></ng-icon>
+                } @else {
+                <ng-icon name="bootstrapFileEarmark" size="25"></ng-icon>
+                }
+            </p-button>
+            }
+            }
+        </div>
+    </ng-template>
+</p-dataview>
