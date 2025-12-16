@@ -88,6 +88,25 @@ npm run api:start:dev
 npm run frontend:start
 ```
 
+### Solución de Problemas
+
+**Error: "npm error ERESOLVE could not resolve"**
+
+Si encuentras errores de resolución de dependencias al iniciar el entorno, es posible que los volúmenes de Docker contengan versiones antiguas de `node_modules`. Para solucionarlo:
+
+```bash
+# Detener los servicios
+npm run dev:down
+
+# Eliminar los volúmenes de Docker (esto borrará los node_modules cacheados)
+docker volume rm backtobackup_frontend_node_modules backtobackup_api_node_modules
+
+# Volver a iniciar los servicios
+npm run dev
+```
+
+Los servicios reinstalarán las dependencias desde cero con las versiones correctas.
+
 ## 🔧 Desarrollo
 
 ### Backend (NestJS)
